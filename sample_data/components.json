@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "name": "220 ohm resistor",
+    "type": "resistor",
+    "value": "220 ohms",
+    "quantity": 25,
+    "box": "Resistor Box",
+    "status": "available",
+    "image": "assets/sample_images/resistor_220ohm.jpg",
+    "used_in_projects": ["ComponentBox"],
+    "notes": "Sample resistor image captured using ESP32-CAM"
+  },
+  {
+    "id": 2,
+    "name": "Green LED",
+    "type": "led",
+    "value": "5 mm green LED",
+    "quantity": 10,
+    "box": "LED Box",
+    "status": "available",
+    "image": "assets/sample_images/green_led.jpg",
+    "used_in_projects": ["ComponentBox"],
+    "notes": "Used as a sample component for dashboard testing"
+  },
+  {
+    "id": 3,
+    "name": "ESP32-CAM",
+    "type": "microcontroller",
+    "value": "Wi-Fi camera module",
+    "quantity": 1,
+    "box": "ESP32 Box",
+    "status": "in use",
+    "image": "assets/sample_images/esp32_cam_module.jpg",
+    "used_in_projects": ["ComponentBox"],
+    "notes": "Main image capture device for this project"
+  }
+]

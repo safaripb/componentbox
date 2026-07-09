@@ -1,37 +1,52 @@
 # ESP32-CAM Capture Firmware
 
-This folder will contain the ESP32-CAM firmware for ComponentBox.
+This folder contains the ESP32-CAM firmware for the ComponentBox project.
 
 ## Purpose
 
-The firmware will allow the ESP32-CAM to capture images of electronic components and send them to the backend API.
+The ESP32-CAM is responsible for capturing images of electronic components so they can later be stored in the ComponentBox inventory dashboard.
 
-## Planned Features
+For the first hardware milestone, the ESP32-CAM runs a local web server. A user can open the camera's IP address in a browser and capture a component image.
 
-- Wi-Fi connection
-- Camera initialization
-- Image capture
-- HTTP image upload
-- Serial debugging
-- Basic error handling
+## Current Features
 
-## Current Status
+- Connects ESP32-CAM to Wi-Fi
+- Initializes the camera
+- Starts a local web server
+- Provides a `/capture` endpoint
+- Displays a simple browser page for image capture
+- Allows sample component images to be saved manually
 
-Firmware development has not started yet. The current focus is setting up the software foundation and project documentation.
+## Hardware Used
 
-## Future Firmware Flow
+- ESP32-CAM module
+- USB-to-serial programmer or ESP32-CAM-MB programmer
+- 5V power source
+- Electronic components for sample images
 
-```text
-Start ESP32-CAM
-      ↓
-Connect to Wi-Fi
-      ↓
-Initialize camera
-      ↓
-Wait for capture command
-      ↓
-Take picture
-      ↓
-Send image to backend
-      ↓
-Print upload status to Serial Monitor
+## How It Works
+
+1. The ESP32-CAM connects to Wi-Fi.
+2. The Serial Monitor prints the local IP address.
+3. The user opens the IP address in a browser.
+4. The browser shows a simple capture page.
+5. Pressing the capture button displays a new component image.
+6. The image can be saved and added to `assets/sample_images/`.
+
+## Arduino IDE Setup
+
+Recommended board settings:
+
+- Board: AI Thinker ESP32-CAM
+- Upload speed: 115200
+- Flash frequency: 40 MHz
+- Partition scheme: Huge APP
+- Core debug level: None
+
+## Wi-Fi Setup
+
+Edit these lines before uploading:
+
+```cpp
+const char* ssid = "YOUR_WIFI_NAME";
+const char* password = "YOUR_WIFI_PASSWORD";
