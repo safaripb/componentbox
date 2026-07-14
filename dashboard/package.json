@@ -1,0 +1,12 @@
+{
+  "name": "componentbox-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AngularJS camera scan dashboard for ComponentBox",
+  "scripts": {
+    "start": "python -m http.server 5173"
+  },
+  "dependencies": {
+    "angular": "1.8.3"
+  }
+}

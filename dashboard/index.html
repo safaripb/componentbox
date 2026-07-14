@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en" ng-app="componentBoxApp">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f1e8">
+  <title>ComponentBox — Scan Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+<body ng-controller="DashboardController as vm" ng-cloak>
+  <div class="app-shell">
+    <aside class="sidebar" ng-class="{'is-open': vm.mobileMenuOpen}">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div><strong>ComponentBox</strong><small>Lab workspace</small></div>
+      </div>
+
+      <nav aria-label="Main navigation">
+        <button class="nav-item active"><span class="nav-icon">⌂</span>Overview</button>
+        <button class="nav-item"><span class="nav-icon">▧</span>All scans <span class="nav-count">{{vm.scans.length}}</span></button>
+        <button class="nav-item"><span class="nav-icon">◎</span>Camera</button>
+        <button class="nav-item"><span class="nav-icon">⌁</span>Devices</button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="device-card">
+          <div class="device-line"><span class="status-dot"></span><strong>ESP32-CAM</strong></div>
+          <p>Online · Lab camera</p>
+          <div class="signal"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <button class="nav-item"><span class="nav-icon">?</span>Help & setup</button>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button class="menu-button" ng-click="vm.mobileMenuOpen = !vm.mobileMenuOpen" aria-label="Toggle menu">☰</button>
+        <div class="breadcrumb"><span>Workspace</span><b>/</b>Scan dashboard</div>
+        <div class="top-actions">
+          <button class="icon-button" title="Notifications">♢<span class="notification-dot"></span></button>
+          <div class="avatar">PF</div>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="welcome-row">
+          <div>
+            <p class="eyebrow">MONDAY, JULY 13</p>
+            <h1>Your component scans</h1>
+            <p class="subtitle">Review images from your camera and keep every resistor reading clear.</p>
+          </div>
+          <button class="primary-button" ng-click="vm.startScan()"><span>＋</span> New camera scan</button>
+        </div>
+
+        <section class="stats-grid" aria-label="Scan statistics">
+          <article class="stat-card">
+            <div class="stat-icon teal">▧</div>
+            <div><p>Total scans</p><strong>{{vm.scans.length}}</strong><small><span class="positive">↑ 3</span> this week</small></div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon yellow">✓</div>
+            <div><p>Identified</p><strong>{{vm.countByStatus('identified')}}</strong><small>{{vm.identificationRate()}}% success rate</small></div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon coral">!</div>
+            <div><p>Needs review</p><strong>{{vm.countByStatus('review')}}</strong><small>Check unclear bands</small></div>
+          </article>
+          <article class="stat-card camera-status">
+            <div><p>Camera status</p><strong><span class="status-dot"></span>Ready to scan</strong><small>Last seen just now</small></div>
+            <div class="camera-art"><div class="lens"></div></div>
+          </article>
+        </section>
+
+        <section class="gallery-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Recent captures</h2>
+              <p>{{vm.filteredScans().length}} images shown</p>
+            </div>
+            <div class="view-toggle" role="group" aria-label="View style">
+              <button ng-class="{active: vm.view === 'grid'}" ng-click="vm.view='grid'" title="Grid view">▦</button>
+              <button ng-class="{active: vm.view === 'list'}" ng-click="vm.view='list'" title="List view">☷</button>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <label class="search-box">
+              <span>⌕</span>
+              <input type="search" ng-model="vm.search" placeholder="Search by value or filename…" aria-label="Search scans">
+              <kbd ng-if="!vm.search">/</kbd>
+            </label>
+            <select ng-model="vm.statusFilter" aria-label="Filter by status">
+              <option value="all">All results</option>
+              <option value="identified">Identified</option>
+              <option value="review">Needs review</option>
+            </select>
+            <select ng-model="vm.sortOrder" aria-label="Sort scans">
+              <option value="-capturedAt">Newest first</option>
+              <option value="capturedAt">Oldest first</option>
+              <option value="valueNumber">Lowest resistance</option>
+              <option value="-valueNumber">Highest resistance</option>
+            </select>
+          </div>
+
+          <div class="scan-grid" ng-class="{'list-view': vm.view === 'list'}" ng-if="vm.filteredScans().length">
+            <article class="scan-card" ng-repeat="scan in vm.filteredScans() | orderBy:vm.sortOrder track by scan.id">
+              <button class="scan-image" ng-click="vm.openScan(scan)" aria-label="Open {{scan.filename}}">
+                <img ng-src="{{scan.image}}" alt="Camera capture of {{scan.value || 'an unidentified resistor'}}">
+                <span class="status-badge" ng-class="scan.status">
+                  <i></i>{{scan.status === 'identified' ? 'Identified' : 'Needs review'}}
+                </span>
+                <span class="zoom-icon">↗</span>
+              </button>
+              <div class="scan-info">
+                <div class="scan-title">
+                  <div><h3>{{scan.value || 'Unknown resistor'}}</h3><p>{{scan.filename}}</p></div>
+                  <button class="more-button" ng-click="vm.toggleMenu(scan, $event)" aria-label="More options">•••</button>
+                </div>
+                <div class="scan-meta">
+                  <span>{{scan.timeLabel}}</span><span class="confidence" ng-if="scan.confidence">{{scan.confidence}}% match</span>
+                </div>
+                <div class="card-menu" ng-if="scan.menuOpen">
+                  <button ng-click="vm.openScan(scan)">View details</button>
+                  <button ng-click="vm.markReviewed(scan)" ng-if="scan.status === 'review'">Mark identified</button>
+                  <button class="danger" ng-click="vm.removeScan(scan)">Remove</button>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="empty-state" ng-if="!vm.filteredScans().length">
+            <div>⌕</div><h3>No matching scans</h3><p>Try another search or clear your filters.</p>
+            <button ng-click="vm.clearFilters()">Clear filters</button>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" ng-if="vm.selectedScan" ng-click="vm.closeModal($event)">
+    <section class="scan-modal" role="dialog" aria-modal="true" aria-labelledby="scan-modal-title">
+      <button class="modal-close" ng-click="vm.selectedScan=null" aria-label="Close">×</button>
+      <div class="modal-image"><img ng-src="{{vm.selectedScan.image}}" alt="Enlarged component scan"></div>
+      <div class="modal-details">
+        <p class="eyebrow">SCAN DETAILS</p>
+        <h2 id="scan-modal-title">{{vm.selectedScan.value || 'Unknown resistor'}}</h2>
+        <p class="filename">{{vm.selectedScan.filename}}</p>
+        <div class="detail-row"><span>Result</span><strong>{{vm.selectedScan.status === 'identified' ? 'Identified' : 'Needs review'}}</strong></div>
+        <div class="detail-row"><span>Confidence</span><strong>{{vm.selectedScan.confidence || '—'}}{{vm.selectedScan.confidence ? '%' : ''}}</strong></div>
+        <div class="detail-row"><span>Captured</span><strong>{{vm.selectedScan.timeLabel}}</strong></div>
+        <div class="band-row" ng-if="vm.selectedScan.bands.length">
+          <span>Detected bands</span><div><i ng-repeat="band in vm.selectedScan.bands" ng-style="{'background': band}"></i></div>
+        </div>
+        <button class="primary-button full" ng-if="vm.selectedScan.status === 'review'" ng-click="vm.markReviewed(vm.selectedScan)">Confirm identification</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" ng-class="{'show': vm.toast}">{{vm.toast}}</div>
+  <script src="node_modules/angular/angular.min.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
