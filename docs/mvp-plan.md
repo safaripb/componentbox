@@ -1,31 +1,33 @@
-# ComponentBox MVP Plan
+# Current MVP
 
-## MVP Goal
+The ComponentBox MVP is a working scan-review loop for electronic component classification and lightweight inventory capture.
 
-The first version of ComponentBox will allow users to manually create and organize electronics inventory records while preparing for ESP32-CAM image capture integration.
+## MVP Scope
 
-The MVP focuses on building a stable software foundation before adding hardware complexity.
+- Capture one component image with the ESP32-CAM or dashboard upload.
+- Send the image to the FastAPI backend.
+- Classify the image as one of the supported component classes, or return `unknown`.
+- Store recent scan metadata and captured images locally.
+- Show scans in the dashboard.
+- Let a human correct labels and export reviewed images into the dataset.
+- Add detected or corrected scans to a simple inventory list.
 
-## MVP Features
+## Supported Classes
 
-### 1. Component Inventory
+- resistor
+- capacitor
+- wire
+- stepper_motor
+- seven_segment
 
-Users can add and view electronic components with:
+## Out Of Scope For The MVP
 
-- Name
-- Type
-- Quantity
-- Value/specification
-- Storage box
-- Notes
-- Status
+- Multi-object detection in a single image.
+- Production inventory database.
+- Published accuracy claims without a held-out evaluation set.
+- On-device inference.
+- Resistor value decoding from camera images.
 
-Example component:
+## Next Milestone
 
-```text
-Name: 220 ohm resistor
-Type: Resistor
-Quantity: 25
-Value: 220 ohms
-Box: Resistor Box A
-Status: Available
+The next milestone is dataset quality: collect balanced ESP32-CAM images for every supported class, train the MobileNetV2-style classifier, and document measured validation results.

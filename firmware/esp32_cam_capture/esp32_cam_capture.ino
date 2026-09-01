@@ -1,12 +1,8 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 #include <WebServer.h>
-
-// =====================
-// Wi-Fi credentials
-// =====================
-const char* ssid = "";
-const char* password = "";
+#include <HTTPClient.h>
+#include "secrets.h"
 
 // =====================
 // GPIO 
@@ -49,6 +45,51 @@ void handleCapture() {
   esp_camera_fb_return(fb);
 }
 
+void handleScanUpload() {
+  camera_fb_t* fb = esp_camera_fb_get();
+
+  if (!fb) {
+    server.send(500, "text/plain", "Camera capture failed");
+    return;
+  }
+
+  String boundary = "----ComponentBoxESP32CamBoundary";
+  String head = "--" + boundary + "\r\n";
+  head += "Content-Disposition: form-data; name=\"image\"; filename=\"esp32-cam.jpg\"\r\n";
+  head += "Content-Type: image/jpeg\r\n\r\n";
+  String tail = "\r\n--" + boundary + "--\r\n";
+
+  size_t totalLength = head.length() + fb->len + tail.length();
+  uint8_t* payload = (uint8_t*)malloc(totalLength);
+
+  if (!payload) {
+    esp_camera_fb_return(fb);
+    server.send(500, "text/plain", "Not enough memory to prepare upload");
+    return;
+  }
+
+  memcpy(payload, head.c_str(), head.length());
+  memcpy(payload + head.length(), fb->buf, fb->len);
+  memcpy(payload + head.length() + fb->len, tail.c_str(), tail.length());
+
+  HTTPClient http;
+  http.begin(COMPONENTBOX_BACKEND_SCAN_URL);
+  http.addHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
+
+  int statusCode = http.POST(payload, totalLength);
+  String responseBody = statusCode > 0 ? http.getString() : "{\"detail\":\"Backend upload failed\"}";
+
+  http.end();
+  free(payload);
+  esp_camera_fb_return(fb);
+
+  if (statusCode > 0) {
+    server.send(200, "application/json", responseBody);
+  } else {
+    server.send(502, "application/json", responseBody);
+  }
+}
+
 // =====================
 // Home page
 // =====================
@@ -68,11 +109,20 @@ void handleRoot() {
   html += "<h1>ComponentBox ESP32-CAM</h1>";
   html += "<p>Use this page to capture component images.</p>";
   html += "<button onclick=\"captureImage()\">Capture Image</button>";
+  html += "<button onclick=\"scanComponent()\">Send to ComponentBox</button>";
   html += "<br>";
   html += "<img id=\"photo\" src=\"\" />";
+  html += "<pre id=\"result\"></pre>";
   html += "<script>";
   html += "function captureImage() {";
   html += "  document.getElementById('photo').src = '/capture?t=' + new Date().getTime();";
+  html += "}";
+  html += "function scanComponent() {";
+  html += "  document.getElementById('result').textContent = 'Uploading...';";
+  html += "  fetch('/scan', { method: 'POST' })";
+  html += "    .then(function(response) { return response.text(); })";
+  html += "    .then(function(text) { document.getElementById('result').textContent = text; })";
+  html += "    .catch(function(error) { document.getElementById('result').textContent = error; });";
   html += "}";
   html += "</script>";
   html += "</body>";
@@ -147,7 +197,7 @@ void setup() {
 
   setupCamera();
 
-  WiFi.begin(ssid, password);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to Wi-Fi");
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -162,6 +212,7 @@ void setup() {
 
   server.on("/", handleRoot);
   server.on("/capture", handleCapture);
+  server.on("/scan", HTTP_POST, handleScanUpload);
 
   server.begin();
   Serial.println("Web server started");

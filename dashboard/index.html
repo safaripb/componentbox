@@ -50,15 +50,20 @@
           <div>
             <p class="eyebrow">MONDAY, JULY 13</p>
             <h1>Your component scans</h1>
-            <p class="subtitle">Review images from your camera and keep every resistor reading clear.</p>
+            <p class="subtitle">Review images from your camera and keep component identification clear.</p>
           </div>
-          <button class="primary-button" ng-click="vm.startScan()"><span>＋</span> New camera scan</button>
+          <div>
+            <input id="scan-upload" class="visually-hidden" type="file" accept="image/*">
+            <button class="primary-button" ng-click="vm.startScan()" ng-disabled="vm.pendingUpload">
+              <span>{{vm.pendingUpload ? '...' : '＋'}}</span> {{vm.pendingUpload ? 'Analyzing scan' : 'Upload component image'}}
+            </button>
+          </div>
         </div>
 
         <section class="stats-grid" aria-label="Scan statistics">
           <article class="stat-card">
             <div class="stat-icon teal">▧</div>
-            <div><p>Total scans</p><strong>{{vm.scans.length}}</strong><small><span class="positive">↑ 3</span> this week</small></div>
+            <div><p>Total scans</p><strong>{{vm.scans.length}}</strong><small>Loaded from backend</small></div>
           </article>
           <article class="stat-card">
             <div class="stat-icon yellow">✓</div>
@@ -66,7 +71,7 @@
           </article>
           <article class="stat-card">
             <div class="stat-icon coral">!</div>
-            <div><p>Needs review</p><strong>{{vm.countByStatus('review')}}</strong><small>Check unclear bands</small></div>
+            <div><p>Unknown</p><strong>{{vm.countByStatus('review')}}</strong><small>Collect more training images</small></div>
           </article>
           <article class="stat-card camera-status">
             <div><p>Camera status</p><strong><span class="status-dot"></span>Ready to scan</strong><small>Last seen just now</small></div>
@@ -74,11 +79,30 @@
           </article>
         </section>
 
+        <section class="result-panel" ng-if="vm.scanResult" aria-label="Latest component scan result">
+          <div class="result-image">
+            <img ng-src="{{vm.scanResult.image}}" alt="Latest component capture">
+            <span class="status-badge" ng-class="vm.scanResult.status">
+              <i></i>{{vm.statusLabel(vm.scanResult.status)}}
+            </span>
+          </div>
+          <div class="result-details">
+            <p class="eyebrow">COMPONENT DETECTED</p>
+            <h2>{{vm.scanResult.value || 'Unknown component'}}</h2>
+            <p class="result-message">{{vm.scanResult.message}}</p>
+            <div class="result-grid">
+              <div><span>Recommended component</span><strong>{{vm.scanResult.value || '—'}}</strong></div>
+              <div><span>Confidence</span><strong>{{vm.scanResult.confidence || '—'}}{{vm.scanResult.confidence ? '%' : ''}}</strong></div>
+              <div><span>Model</span><strong>{{vm.scanResult.modelVersion || 'Dataset needed'}}</strong></div>
+            </div>
+          </div>
+        </section>
+
         <section class="gallery-panel">
           <div class="panel-heading">
             <div>
               <h2>Recent captures</h2>
-              <p>{{vm.filteredScans().length}} images shown</p>
+              <p>{{vm.scans.length ? vm.filteredScans().length + ' backend images shown' : 'Example images shown until backend scans arrive'}}</p>
             </div>
             <div class="view-toggle" role="group" aria-label="View style">
               <button ng-class="{active: vm.view === 'grid'}" ng-click="vm.view='grid'" title="Grid view">▦</button>
@@ -94,37 +118,54 @@
             </label>
             <select ng-model="vm.statusFilter" aria-label="Filter by status">
               <option value="all">All results</option>
-              <option value="identified">Identified</option>
-              <option value="review">Needs review</option>
+              <option value="identified">Detected</option>
+              <option value="review">Unknown</option>
+            </select>
+            <select ng-model="vm.componentFilter" aria-label="Filter by component">
+              <option value="all">All components</option>
+              <option ng-repeat="component in vm.componentOptions" value="{{component.value}}">{{component.label}}</option>
+            </select>
+            <select ng-model="vm.confidenceFilter" aria-label="Filter by confidence">
+              <option value="all">All confidence</option>
+              <option value="high">High confidence</option>
+              <option value="medium">Medium confidence</option>
+              <option value="low">Low confidence</option>
+            </select>
+            <select ng-model="vm.reviewFilter" aria-label="Filter by review status">
+              <option value="all">All review states</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="unreviewed">Unreviewed</option>
             </select>
             <select ng-model="vm.sortOrder" aria-label="Sort scans">
               <option value="-capturedAt">Newest first</option>
               <option value="capturedAt">Oldest first</option>
-              <option value="valueNumber">Lowest resistance</option>
-              <option value="-valueNumber">Highest resistance</option>
+              <option value="-valueNumber">Highest confidence</option>
+              <option value="valueNumber">Lowest confidence</option>
             </select>
           </div>
 
           <div class="scan-grid" ng-class="{'list-view': vm.view === 'list'}" ng-if="vm.filteredScans().length">
             <article class="scan-card" ng-repeat="scan in vm.filteredScans() | orderBy:vm.sortOrder track by scan.id">
               <button class="scan-image" ng-click="vm.openScan(scan)" aria-label="Open {{scan.filename}}">
-                <img ng-src="{{scan.image}}" alt="Camera capture of {{scan.value || 'an unidentified resistor'}}">
+                <img ng-src="{{scan.image}}" alt="Camera capture of {{scan.value || 'an unidentified component'}}">
                 <span class="status-badge" ng-class="scan.status">
-                  <i></i>{{scan.status === 'identified' ? 'Identified' : 'Needs review'}}
+                  <i></i>{{vm.statusLabel(scan.status)}}
                 </span>
                 <span class="zoom-icon">↗</span>
               </button>
               <div class="scan-info">
                 <div class="scan-title">
-                  <div><h3>{{scan.value || 'Unknown resistor'}}</h3><p>{{scan.filename}}</p></div>
+                  <div><h3>{{scan.value || 'Unknown component'}}</h3><p>{{scan.filename}}</p></div>
                   <button class="more-button" ng-click="vm.toggleMenu(scan, $event)" aria-label="More options">•••</button>
                 </div>
                 <div class="scan-meta">
-                  <span>{{scan.timeLabel}}</span><span class="confidence" ng-if="scan.confidence">{{scan.confidence}}% match</span>
+                  <span>{{scan.timeLabel}}</span>
+                  <span>{{scan.reviewed ? 'Reviewed' : 'Unreviewed'}}</span>
+                  <span class="confidence" ng-if="scan.confidence !== null && scan.confidence !== undefined">{{scan.confidence}}% confidence</span>
                 </div>
                 <div class="card-menu" ng-if="scan.menuOpen">
                   <button ng-click="vm.openScan(scan)">View details</button>
-                  <button ng-click="vm.markReviewed(scan)" ng-if="scan.status === 'review'">Mark identified</button>
+                  <button ng-click="vm.addToInventory(scan)" ng-if="scan.success && !scan.addedToInventory">Add to inventory</button>
                   <button class="danger" ng-click="vm.removeScan(scan)">Remove</button>
                 </div>
               </div>
@@ -146,15 +187,25 @@
       <div class="modal-image"><img ng-src="{{vm.selectedScan.image}}" alt="Enlarged component scan"></div>
       <div class="modal-details">
         <p class="eyebrow">SCAN DETAILS</p>
-        <h2 id="scan-modal-title">{{vm.selectedScan.value || 'Unknown resistor'}}</h2>
+        <h2 id="scan-modal-title">{{vm.selectedScan.value || 'Unknown component'}}</h2>
         <p class="filename">{{vm.selectedScan.filename}}</p>
-        <div class="detail-row"><span>Result</span><strong>{{vm.selectedScan.status === 'identified' ? 'Identified' : 'Needs review'}}</strong></div>
+        <div class="detail-row"><span>Detection status</span><strong>{{vm.statusLabel(vm.selectedScan.status)}}</strong></div>
+        <div class="detail-row"><span>Recommended component</span><strong>{{vm.selectedScan.value || '—'}}</strong></div>
         <div class="detail-row"><span>Confidence</span><strong>{{vm.selectedScan.confidence || '—'}}{{vm.selectedScan.confidence ? '%' : ''}}</strong></div>
         <div class="detail-row"><span>Captured</span><strong>{{vm.selectedScan.timeLabel}}</strong></div>
-        <div class="band-row" ng-if="vm.selectedScan.bands.length">
-          <span>Detected bands</span><div><i ng-repeat="band in vm.selectedScan.bands" ng-style="{'background': band}"></i></div>
+        <div class="detail-row" ng-if="vm.selectedScan.modelVersion"><span>Model</span><strong>{{vm.selectedScan.modelVersion}}</strong></div>
+        <div class="detail-row"><span>Reviewed</span><strong>{{vm.selectedScan.reviewed ? 'Yes' : 'No'}}</strong></div>
+        <p class="result-message" ng-if="vm.selectedScan.message">{{vm.selectedScan.message}}</p>
+        <div class="correction-panel">
+          <span>Correct label</span>
+          <div>
+            <button ng-repeat="component in vm.componentOptions" ng-click="vm.correctScan(vm.selectedScan, component.value)">
+              {{component.label}}
+            </button>
+          </div>
         </div>
-        <button class="primary-button full" ng-if="vm.selectedScan.status === 'review'" ng-click="vm.markReviewed(vm.selectedScan)">Confirm identification</button>
+        <button class="primary-button full" ng-if="vm.selectedScan.success && !vm.selectedScan.addedToInventory" ng-click="vm.addToInventory(vm.selectedScan)">Add to inventory</button>
+        <button class="primary-button full" ng-if="vm.selectedScan.addedToInventory" disabled>Added to inventory</button>
       </div>
     </section>
   </div>
