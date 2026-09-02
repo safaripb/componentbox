@@ -19,6 +19,9 @@
       vm.latestScanSeenAt = null;
       vm.pendingUpload = false;
       vm.toast = '';
+      vm.apiOnline = false;
+      vm.activeSection = 'overview';
+      vm.todayLabel = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
       vm.componentOptions = [
         { value: 'resistor', label: 'Resistor' },
         { value: 'capacitor', label: 'Capacitor' },
@@ -83,23 +86,13 @@
       vm.statusLabel = statusLabel;
       vm.displayComponent = displayComponent;
       vm.closeModal = function (event) { if (event.target === event.currentTarget) vm.selectedScan = null; };
-      vm.toggleMenu = function (item, event) {
-        event.stopPropagation();
-        vm.scans.forEach(function (scanItem) { if (scanItem !== item) scanItem.menuOpen = false; });
-        item.menuOpen = !item.menuOpen;
-      };
-      vm.markReviewed = function (item) {
-        if (!item.component) {
-          showToast('Choose a component label first');
-          return;
-        }
-        vm.correctScan(item, item.component);
-      };
       vm.correctScan = correctScan;
       vm.addToInventory = addToInventory;
-      vm.removeScan = function (item) {
-        vm.scans = vm.scans.filter(function (scanItem) { return scanItem !== item; });
-        showToast('Scan removed');
+      vm.goTo = function (sectionId) {
+        var section = document.getElementById(sectionId);
+        vm.activeSection = sectionId;
+        vm.mobileMenuOpen = false;
+        if (section) section.scrollIntoView({behavior: 'smooth', block: 'start'});
       };
       vm.clearFilters = function () {
         vm.search = '';
@@ -133,11 +126,13 @@
           transformRequest: angular.identity,
           headers: { 'Content-Type': undefined }
         }).then(function (response) {
+          vm.apiOnline = true;
           var result = normalizeScanResponse(response.data, file.name, previewUrl);
           vm.scanResult = result;
           addScanIfNew(result);
           showToast(result.success ? 'Component detected' : statusLabel(result.status));
         }).catch(function (error) {
+          vm.apiOnline = false;
           vm.scanResult = {
             status: 'error',
             message: apiErrorMessage(error),
@@ -212,6 +207,7 @@
 
       function pollLatestScan() {
         $http.get(apiBaseUrl + '/api/component-scans/latest').then(function (response) {
+          vm.apiOnline = true;
           if (!response.data || !response.data.scan || !response.data.scan.captured_at) return;
           if (response.data.scan.captured_at === vm.latestScanSeenAt) return;
 
@@ -219,6 +215,8 @@
           vm.latestScanSeenAt = response.data.scan.captured_at;
           vm.scanResult = latest;
           replaceScan(latest);
+        }).catch(function () {
+          vm.apiOnline = false;
         }).finally(function () {
           $timeout(pollLatestScan, 3500);
         });
@@ -226,6 +224,7 @@
 
       function loadScanHistory() {
         $http.get(apiBaseUrl + '/api/component-scans').then(function (response) {
+          vm.apiOnline = true;
           if (!response.data || !response.data.scans) return;
           vm.scans = response.data.scans.map(function (scanData) {
             return normalizeScanResponse(scanData, scanData.filename, scanData.image_data_url);
@@ -239,6 +238,8 @@
             vm.scanResult = vm.scans[0];
             vm.latestScanSeenAt = vm.scans[0].capturedAtRaw;
           }
+        }).catch(function () {
+          vm.apiOnline = false;
         }).finally(function () {
           $timeout(loadScanHistory, 4000);
         });

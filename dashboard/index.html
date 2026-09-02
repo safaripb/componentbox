@@ -19,19 +19,17 @@
       </div>
 
       <nav aria-label="Main navigation">
-        <button class="nav-item active"><span class="nav-icon">⌂</span>Overview</button>
-        <button class="nav-item"><span class="nav-icon">▧</span>All scans <span class="nav-count">{{vm.scans.length}}</span></button>
-        <button class="nav-item"><span class="nav-icon">◎</span>Camera</button>
-        <button class="nav-item"><span class="nav-icon">⌁</span>Devices</button>
+        <button class="nav-item" ng-class="{active: vm.activeSection === 'overview'}" ng-click="vm.goTo('overview')"><span class="nav-icon">⌂</span>Overview</button>
+        <button class="nav-item" ng-class="{active: vm.activeSection === 'scan-gallery'}" ng-click="vm.goTo('scan-gallery')"><span class="nav-icon">▧</span>Scan gallery <span class="nav-count">{{vm.scans.length}}</span></button>
+        <button class="nav-item" ng-click="vm.startScan()"><span class="nav-icon">◎</span>Upload a scan</button>
       </nav>
 
       <div class="sidebar-bottom">
         <div class="device-card">
-          <div class="device-line"><span class="status-dot"></span><strong>ESP32-CAM</strong></div>
-          <p>Online · Lab camera</p>
+          <div class="device-line"><span class="status-dot" ng-class="{offline: !vm.apiOnline}"></span><strong>Recognition API</strong></div>
+          <p>{{vm.apiOnline ? 'Connected and ready' : 'Offline · Demo mode'}}</p>
           <div class="signal"><i></i><i></i><i></i><i></i></div>
         </div>
-        <button class="nav-item"><span class="nav-icon">?</span>Help & setup</button>
       </div>
     </aside>
 
@@ -39,18 +37,15 @@
       <header class="topbar">
         <button class="menu-button" ng-click="vm.mobileMenuOpen = !vm.mobileMenuOpen" aria-label="Toggle menu">☰</button>
         <div class="breadcrumb"><span>Workspace</span><b>/</b>Scan dashboard</div>
-        <div class="top-actions">
-          <button class="icon-button" title="Notifications">♢<span class="notification-dot"></span></button>
-          <div class="avatar">PF</div>
-        </div>
+        <div class="top-actions"><div class="avatar" title="ComponentBox workspace">CB</div></div>
       </header>
 
-      <section class="content">
+      <section class="content" id="overview">
         <div class="welcome-row">
           <div>
-            <p class="eyebrow">MONDAY, JULY 13</p>
-            <h1>Your component scans</h1>
-            <p class="subtitle">Review images from your camera and keep component identification clear.</p>
+            <p class="eyebrow">{{vm.todayLabel}}</p>
+            <h1>See every component clearly.</h1>
+            <p class="subtitle">Upload a camera image, identify the part, and correct uncertain results in one focused workspace.</p>
           </div>
           <div>
             <input id="scan-upload" class="visually-hidden" type="file" accept="image/*">
@@ -74,12 +69,13 @@
             <div><p>Unknown</p><strong>{{vm.countByStatus('review')}}</strong><small>Collect more training images</small></div>
           </article>
           <article class="stat-card camera-status">
-            <div><p>Camera status</p><strong><span class="status-dot"></span>Ready to scan</strong><small>Last seen just now</small></div>
+            <div><p>System status</p><strong><span class="status-dot" ng-class="{offline: !vm.apiOnline}"></span>{{vm.apiOnline ? 'Ready to scan' : 'Demo mode'}}</strong><small>{{vm.apiOnline ? 'Recognition service connected' : 'Start the backend to analyze images'}}</small></div>
             <div class="camera-art"><div class="lens"></div></div>
           </article>
         </section>
 
         <section class="result-panel" ng-if="vm.scanResult" aria-label="Latest component scan result">
+          <button class="result-close" ng-click="vm.scanResult = null" aria-label="Dismiss latest result">×</button>
           <div class="result-image">
             <img ng-src="{{vm.scanResult.image}}" alt="Latest component capture">
             <span class="status-badge" ng-class="vm.scanResult.status">
@@ -98,7 +94,7 @@
           </div>
         </section>
 
-        <section class="gallery-panel">
+        <section class="gallery-panel" id="scan-gallery">
           <div class="panel-heading">
             <div>
               <h2>Recent captures</h2>
@@ -156,17 +152,12 @@
               <div class="scan-info">
                 <div class="scan-title">
                   <div><h3>{{scan.value || 'Unknown component'}}</h3><p>{{scan.filename}}</p></div>
-                  <button class="more-button" ng-click="vm.toggleMenu(scan, $event)" aria-label="More options">•••</button>
+                  <button class="details-button" ng-click="vm.openScan(scan)">Details</button>
                 </div>
                 <div class="scan-meta">
                   <span>{{scan.timeLabel}}</span>
                   <span>{{scan.reviewed ? 'Reviewed' : 'Unreviewed'}}</span>
                   <span class="confidence" ng-if="scan.confidence !== null && scan.confidence !== undefined">{{scan.confidence}}% confidence</span>
-                </div>
-                <div class="card-menu" ng-if="scan.menuOpen">
-                  <button ng-click="vm.openScan(scan)">View details</button>
-                  <button ng-click="vm.addToInventory(scan)" ng-if="scan.success && !scan.addedToInventory">Add to inventory</button>
-                  <button class="danger" ng-click="vm.removeScan(scan)">Remove</button>
                 </div>
               </div>
             </article>
@@ -205,7 +196,7 @@
           </div>
         </div>
         <button class="primary-button full" ng-if="vm.selectedScan.success && !vm.selectedScan.addedToInventory" ng-click="vm.addToInventory(vm.selectedScan)">Add to inventory</button>
-        <button class="primary-button full" ng-if="vm.selectedScan.addedToInventory" disabled>Added to inventory</button>
+        <div class="inventory-confirmation" ng-if="vm.selectedScan.addedToInventory">✓ Added to inventory</div>
       </div>
     </section>
   </div>
