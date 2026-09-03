@@ -4,7 +4,8 @@
   "private": true,
   "description": "AngularJS camera scan dashboard for ComponentBox",
   "scripts": {
-    "start": "python -m http.server 5173"
+    "start": "python -m http.server 5173",
+    "check": "node --check src/app.js"
   },
   "dependencies": {
     "angular": "1.8.3"
